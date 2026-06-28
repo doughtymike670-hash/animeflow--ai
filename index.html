@@ -626,15 +626,27 @@ function copyText(btn, text) {
     }
   }
 
-function fallbackCopy(btn, text) {
-  const ta=document.createElement('textarea');
-  ta.value=text;ta.style.cssText='position:fixed;top:0;left:0;opacity:0;font-size:12px';
-  document.body.appendChild(ta);ta.focus();ta.select();
-  try{document.execCommand('copy');showCopied(btn);}
-  catch{btn.textContent='⚠ Hold & copy text above';setTimeout(()=>btn.textContent='📋 Copy Prompt',3000);}
-  document.body.removeChild(ta);
-}
 
+function fallbackCopy(btn, text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "-9999px";
+
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+
+    try {
+        document.execCommand("copy");
+        showCopied(btn);
+    } catch (e) {
+        btn.textContent = "❌ Copy failed";
+    }
+
+    document.body.removeChild(ta);
+}
 function showCopied(btn) {
   const orig=btn.textContent;
   btn.textContent='✅ Copied!';
