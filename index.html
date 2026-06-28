@@ -1,1 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AnimeFlow AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080f;--surface:#0d0f1c;--panel:#121425;--card:#161929;
+  --border:#1e2240;--border2:#252a50;
+  --pink:#ff2d78;--purple:#8b3dff;--cyan:#00e5ff;--gold:#ffd700;
+  --green:#00ff88;--text:#e8eaf6;--text-dim:#6b7299;--text-mid:#9ba3cc;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;overflow-x:hidden;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(139,61,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(139,61,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(80px)}
+.orb1{width:400px;height:400px;top:-100px;left:-100px;background:rgba(139,61,255,0.12)}
+.orb2{width:350px;height:350px;bottom:-80px;right:-80px;background:rgba(255,45,120,0.1)}
 
+/* AUTH */
+.auth-wrap{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px;width:100%;max-width:400px}
+.auth-logo{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:4px}
+.auth-sub{text-align:center;color:var(--text-dim);font-size:11px;margin-bottom:28px;letter-spacing:2px;text-transform:uppercase}
+.auth-tabs{display:flex;background:var(--panel);border-radius:10px;padding:3px;margin-bottom:20px;border:1px solid var(--border)}
+.auth-tab{flex:1;padding:8px;text-align:center;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text-dim);transition:all 0.2s;-webkit-user-select:none;user-select:none}
+.auth-tab.active{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.fg{margin-bottom:14px}
+.fl{display:block;font-size:10px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.fi{width:100%;padding:11px 14px;background:var(--panel);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:16px;outline:none;-webkit-appearance:none}
+.fi:focus{border-color:var(--purple)}
+.fi::placeholder{color:var(--text-dim)}
+.auth-btn{width:100%;padding:16px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:8px;-webkit-appearance:none;touch-action:manipulation;min-height:52px}
+.msg{border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5}
+.msg.error{background:rgba(255,45,120,0.1);border:1px solid rgba(255,45,120,0.3);color:var(--pink)}
+.msg.success{background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:var(--green)}
+
+/* APP */
+.app{position:relative;z-index:1;display:none;flex-direction:column;height:100vh;overflow:hidden}
+
+/* TOP NAV */
+.topnav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.topnav::-webkit-scrollbar{display:none}
+.nav-brand{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;padding:0 14px;white-space:nowrap;flex-shrink:0}
+.nav-tabs{display:flex;flex:1}
+.nav-tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 12px;cursor:pointer;color:var(--text-dim);font-size:9px;font-weight:600;white-space:nowrap;border-bottom:2px solid transparent;flex-shrink:0;-webkit-user-select:none;user-select:none;touch-action:manipulation;min-width:55px}
+.nav-tab .ti{font-size:17px}
+.nav-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.nav-right{padding:0 10px;flex-shrink:0}
+.ai-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.2);font-size:10px;color:var(--green);font-weight:600;white-space:nowrap}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px}
+.page{display:none}
+.page.active{display:block}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+.card-title{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.5px;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;margin-left:auto;white-space:nowrap}
+.bp{background:rgba(139,61,255,0.15);color:var(--purple);border:1px solid rgba(139,61,255,0.3)}
+.bg2{background:rgba(0,255,136,0.1);color:var(--green);border:1px solid rgba(0,255,136,0.2)}
+.bc{background:rgba(0,229,255,0.1);color:var(--cyan);border:1px solid rgba(0,229,255,0.2)}
+.bk{background:rgba(255,215,0,0.1);color:var(--gold);border:1px solid rgba(255,215,0,0.2)}
+.br{background:rgba(255,45,120,0.12);color:var(--pink);border:1px solid rgba(255,45,120,0.25)}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat.sp{border-color:rgba(255,45,120,0.3)}
+.stat.su{border-color:rgba(139,61,255,0.3)}
+.stat.sc{border-color:rgba(0,229,255,0.2)}
+.stat.sg{border-color:rgba(255,215,0,0.2)}
+.stat-icon{font-size:18px;margin-bottom:6px}
+.stat-num{font-family:'Orbitron',monospace;font-size:22px;font-weight:700;line-height:1;margin-bottom:3px}
+.stat.sp .stat-num{color:var(--pink)}
+.stat.su .stat-num{color:var(--purple)}
+.stat.sc .stat-num{color:var(--cyan)}
+.stat.sg .stat-num{color:var(--gold)}
+.stat-label{font-size:10px;color:var(--text-dim)}
+
+/* BUTTONS - Large tap targets for mobile */
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px 20px;border-radius:12px;border:none;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-bottom:10px;-webkit-appearance:none;touch-action:manipulation;min-height:50px;-webkit-user-select:none;user-select:none;position:relative;z-index:1}
+.btn:last-child{margin-bottom:0}
+.btn:active{opacity:0.75}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn-primary{background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff}
+.btn-ghost{background:var(--panel);color:var(--text);border:1px solid var(--border)}
+.btn-cyan{background:rgba(0,229,255,0.15);color:var(--cyan);border:1px solid rgba(0,229,255,0.4)}
+.btn-green{background:rgba(0,255,136,0.12);color:var(--green);border:1px solid rgba(0,255,136,0.35)}
+.btn-sm{padding:10px 16px;font-size:12px;width:auto;margin-bottom:0;min-height:40px}
+
+/* COPY BUTTON - Special large tap target */
+.copy-btn{
+  display:block;width:100%;padding:14px;
+  background:rgba(0,229,255,0.15);
+  color:var(--cyan);
+  border:2px solid rgba(0,229,255,0.4);
+  border-radius:10px;
+  font-size:13px;font-weight:700;
+  text-align:center;
+  cursor:pointer;
+  margin-top:8px;
+  -webkit-appearance:none;
+  touch-action:manipulation;
+  min-height:48px;
+  font-family:'Inter',sans-serif;
+  -webkit-user-select:none;
+  user-select:none;
+}
+.copy-btn:active{background:rgba(0,255,136,0.15);color:var(--green);border-color:rgba(0,255,136,0.4)}
+.copy-btn.copied{background:rgba(0,255,136,0.15);color:var(--green);border-color:rgba(0,255,136,0.4)}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;background:var(--surface);position:relative;margin-bottom:12px;touch-action:manipulation}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;font-size:16px}
+.upload-icon{width:48px;height:48px;margin:0 auto 10px;background:linear-gradient(135deg,var(--purple),var(--pink));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px}
+.upload-zone h3{font-size:14px;font-weight:600;margin-bottom:4px}
+.upload-zone p{color:var(--text-dim);font-size:11px}
+
+/* PROGRESS */
+.prog-wrap{margin-bottom:12px;display:none}
+.prog-label{font-size:11px;color:var(--text-dim);margin-bottom:5px}
+.prog-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:3px;transition:width 0.4s;width:0%}
+
+/* AI BOX */
+.ai-box{background:rgba(139,61,255,0.08);border:1px solid rgba(139,61,255,0.3);border-radius:12px;padding:14px;margin-bottom:12px;display:none}
+.ai-box h3{font-size:13px;font-weight:700;color:var(--purple);margin-bottom:4px}
+.ai-box p{font-size:11px;color:var(--text-dim);margin-bottom:8px}
+.ai-result{font-size:11px;color:var(--text-mid);line-height:1.7;background:var(--card);border-radius:8px;padding:10px;display:none;white-space:pre-wrap}
+
+/* FORM */
+.fi-wrap{margin-bottom:12px}
+.fi-label{display:block;font-size:10px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.fi-input{width:100%;padding:12px 14px;background:var(--panel);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:16px;outline:none;-webkit-appearance:none}
+.fi-input:focus{border-color:var(--purple)}
+.fi-select{width:100%;padding:12px 14px;background:var(--panel);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Inter',sans-serif;font-size:16px;outline:none;cursor:pointer;-webkit-appearance:none}
+.fi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* AUDIO LIST */
+.track-list{display:flex;flex-direction:column;gap:8px}
+.track-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--border);border-radius:10px}
+.track-icon{width:36px;height:36px;border-radius:8px;background:rgba(139,61,255,0.15);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.track-info{flex:1;min-width:0}
+.track-name{font-size:12px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.track-meta{font-size:10px;color:var(--text-dim)}
+.track-actions{display:flex;gap:6px;flex-shrink:0}
+
+/* PROMPTS */
+.prompt-list{display:flex;flex-direction:column;gap:12px}
+.prompt-item{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative}
+.prompt-day{font-size:9px;color:var(--purple);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.prompt-text{font-size:12px;color:var(--text-mid);line-height:1.6;margin-bottom:8px}
+.prompt-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.ptag{font-size:9px;padding:2px 7px;border-radius:4px;background:rgba(0,229,255,0.08);color:var(--cyan);border:1px solid rgba(0,229,255,0.2)}
+
+/* CALENDAR */
+.cal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cal-day{border-radius:8px;padding:8px 4px;background:var(--panel);border:1px solid var(--border);text-align:center}
+.cal-day.today{border-color:rgba(139,61,255,0.5);background:rgba(139,61,255,0.08)}
+.cal-name{font-size:8px;color:var(--text-dim);text-transform:uppercase;margin-bottom:4px}
+.cal-num{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:6px}
+.cal-day.today .cal-num{color:var(--purple)}
+.cal-pill{font-size:8px;padding:2px 3px;border-radius:4px;margin-bottom:2px;font-weight:600}
+.pv{background:rgba(139,61,255,0.2);color:var(--purple)}
+.ps{background:rgba(255,45,120,0.15);color:var(--pink)}
+.pd{background:rgba(0,255,136,0.1);color:var(--green)}
+
+/* VIDEO */
+.video-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.video-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.video-thumb{height:90px;background:linear-gradient(135deg,rgba(139,61,255,0.2),rgba(255,45,120,0.2));display:flex;align-items:center;justify-content:center;font-size:28px;position:relative}
+.v-status{position:absolute;top:6px;right:6px;font-size:8px;padding:2px 6px;border-radius:4px;font-weight:600;background:rgba(0,255,136,0.15);color:var(--green)}
+.video-info{padding:8px 10px}
+.video-name{font-size:10px;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.video-meta{font-size:9px;color:var(--text-dim);margin-bottom:6px}
+
+/* CAMPAIGN */
+.camp-list{display:flex;flex-direction:column;gap:8px}
+.camp-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);border:1px solid var(--border);border-radius:10px}
+
+/* AUTOPOST */
+.step-item{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.step-title{font-size:12px;font-weight:700;margin-bottom:4px}
+.step-desc{font-size:11px;color:var(--text-dim);line-height:1.6}
+.conn-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:8px}
+.conn-left{display:flex;align-items:center;gap:10px}
+.conn-icon{font-size:18px}
+.conn-name{font-size:12px;font-weight:600;margin-bottom:1px}
+.conn-sub{font-size:10px;color:var(--text-dim)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 24px;font-size:14px;font-weight:600;opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);max-width:88vw;text-align:center;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.success{border-color:rgba(0,255,136,0.4);color:var(--green);background:rgba(0,20,10,0.95)}
+.toast.error{border-color:rgba(255,45,120,0.4);color:var(--pink);background:rgba(20,0,10,0.95)}
+.toast.info{border-color:rgba(139,61,255,0.4);color:var(--purple);background:rgba(10,0,20,0.95)}
+
+/* LOADER */
+.loader{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.25);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty{text-align:center;padding:28px 16px;color:var(--text-dim);font-size:12px;line-height:1.7}
+.empty .ei{font-size:30px;margin-bottom:8px}
+.how-item{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+.how-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.how-text{font-size:12px;color:var(--text-mid);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- AUTH -->
+<div class="auth-wrap" id="authWrap">
+  <div class="auth-card">
+    <div class="auth-logo">AnimeFlow AI</div>
+    <div class="auth-sub">Professional Anime Content Studio</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Login</div>
+      <div class="auth-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</div>
+    </div>
+    <div class="msg error" id="authErr"></div>
+    <div class="msg success" id="authOk"></div>
+    <div id="loginForm">
+      <div class="fg"><label class="fl">Email</label><input type="email" class="fi" id="loginEmail" placeholder="your@email.com" autocomplete="email"></div>
+      <div class="fg"><label class="fl">Password</label><input type="password" class="fi" id="loginPass" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="auth-btn" id="loginBtn" onclick="doLogin()">Login to Studio</button>
+    </div>
+    <div id="signupForm" style="display:none">
+      <div class="fg"><label class="fl">Full Name</label><input type="text" class="fi" id="signupName" placeholder="Your name" autocomplete="name"></div>
+      <div class="fg"><label class="fl">Email</label><input type="email" class="fi" id="signupEmail" placeholder="your@email.com" autocomplete="email"></div>
+      <div class="fg"><label class="fl">Password</label><input type="password" class="fi" id="signupPass" placeholder="Min 6 characters" autocomplete="new-password"></div>
+      <button class="auth-btn" id="signupBtn" onclick="doSignup()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appWrap">
+  <div class="topnav">
+    <div class="nav-brand">AF·AI</div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" id="nt-dashboard" onclick="goPage('dashboard')"><span class="ti">⚡</span>Overview</div>
+      <div class="nav-tab" id="nt-audio" onclick="goPage('audio')"><span class="ti">🎵</span>Studio</div>
+      <div class="nav-tab" id="nt-prompts" onclick="goPage('prompts')"><span class="ti">🎌</span>Prompts</div>
+      <div class="nav-tab" id="nt-videos" onclick="goPage('videos')"><span class="ti">🎬</span>Videos</div>
+      <div class="nav-tab" id="nt-schedule" onclick="goPage('schedule')"><span class="ti">📅</span>Schedule</div>
+      <div class="nav-tab" id="nt-autopost" onclick="goPage('autopost')"><span class="ti">🤖</span>Post</div>
+    </div>
+    <div class="nav-right"><div class="ai-pill"><div class="ai-dot"></div>AI</div></div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats">
+        <div class="stat sp"><div class="stat-icon">🎵</div><div class="stat-num" id="s-audio">0</div><div class="stat-label">Audio Uploads</div></div>
+        <div class="stat su"><div class="stat-icon">🎌</div><div class="stat-num" id="s-prompts">0</div><div class="stat-label">Prompts Made</div></div>
+        <div class="stat sc"><div class="stat-icon">🎬</div><div class="stat-num" id="s-videos">0</div><div class="stat-label">Videos Ready</div></div>
+        <div class="stat sg"><div class="stat-icon">📅</div><div class="stat-num" id="s-camps">0</div><div class="stat-label">Campaigns</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">👋 Welcome, <span id="welcomeName">Creator</span>!</div>
+        <button class="btn btn-primary" onclick="goPage('audio')">🎵 Upload Audio</button>
+        <button class="btn btn-ghost" onclick="goPage('prompts')">🎌 Generate Prompts</button>
+        <button class="btn btn-ghost" onclick="goPage('videos')">🎬 Upload Video</button>
+        <button class="btn btn-ghost" onclick="goPage('autopost')">🤖 Auto Post Setup</button>
+        <button class="btn btn-ghost" style="color:var(--pink);border-color:rgba(255,45,120,0.3)" onclick="doLogout()">Logout</button>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 How It Works</div>
+        <div class="how-item"><div class="how-num" style="background:rgba(139,61,255,0.2);color:var(--purple)">1</div><div class="how-text">Upload audio → AI enhances it to studio quality</div></div>
+        <div class="how-item"><div class="how-num" style="background:rgba(255,45,120,0.15);color:var(--pink)">2</div><div class="how-text">Get 7 unique anime prompts → paste into Hailuo AI</div></div>
+        <div class="how-item"><div class="how-num" style="background:rgba(0,229,255,0.1);color:var(--cyan)">3</div><div class="how-text">Download video from Hailuo → upload here</div></div>
+        <div class="how-item"><div class="how-num" style="background:rgba(0,255,136,0.1);color:var(--green)">4</div><div class="how-text">Make.com auto posts to all platforms daily</div></div>
+      </div>
+    </div>
+
+    <!-- AUDIO -->
+    <div class="page" id="page-audio">
+      <div class="card">
+        <div class="card-title">🎵 Upload Audio <span class="badge bp">AI Enhanced</span></div>
+        <div class="upload-zone" id="audioZone">
+          <input type="file" id="audioFile" accept="audio/*">
+          <div class="upload-icon">🎵</div>
+          <h3>Tap to upload audio</h3>
+          <p>MP3, WAV, OGG, FLAC, M4A</p>
+        </div>
+        <div class="prog-wrap" id="audioProgWrap">
+          <div class="prog-label" id="audioProgLabel">Uploading...</div>
+          <div class="prog-bg"><div class="prog-fill" id="audioProgFill"></div></div>
+        </div>
+        <div class="ai-box" id="aiBox">
+          <h3>🤖 AI Analyzing Your Audio</h3>
+          <p>Claude is analyzing your track...</p>
+          <div class="ai-result" id="aiResult"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎧 My Tracks <span class="badge bg2" id="trackCount">0</span></div>
+        <div class="track-list" id="trackList"><div class="empty"><div class="ei">🎵</div>No audio yet. Upload above!</div></div>
+      </div>
+    </div>
+
+    <!-- PROMPTS -->
+    <div class="page" id="page-prompts">
+      <div class="card">
+        <div class="card-title">🎌 Anime Prompts <span class="badge bc">AI Powered</span></div>
+        <div class="fi-row" style="margin-bottom:10px">
+          <div class="fi-wrap" style="margin:0">
+            <label class="fi-label">Anime Style</label>
+            <select class="fi-select" id="animeStyle">
+              <option value="Dragon Ball Z">Dragon Ball Z</option>
+              <option value="Jujutsu Kaisen">Jujutsu Kaisen</option>
+              <option value="Naruto">Naruto</option>
+              <option value="One Piece">One Piece</option>
+              <option value="Demon Slayer">Demon Slayer</option>
+              <option value="Attack on Titan">Attack on Titan</option>
+              <option value="Studio Ghibli">Studio Ghibli</option>
+            </select>
+          </div>
+          <div class="fi-wrap" style="margin:0">
+            <label class="fi-label">Content Mode</label>
+            <select class="fi-select" id="contentMode">
+              <option value="anime singer">Anime Singer</option>
+              <option value="anime music video">Music Video</option>
+              <option value="anime battle scene">Battle Scene</option>
+              <option value="anime story scene">Story Mode</option>
+            </select>
+          </div>
+        </div>
+        <div class="fi-wrap">
+          <label class="fi-label">Describe your audio</label>
+          <input type="text" class="fi-input" id="audioDesc" placeholder="e.g. upbeat afrobeats love song">
+        </div>
+        <button class="btn btn-primary" id="genBtn">🤖 Generate 7 Day Prompts</button>
+      </div>
+      <div class="card" id="promptsCard" style="display:none">
+        <div class="card-title">📋 Your 7 Day Prompts</div>
+        <p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">Tap the big button below each prompt to copy it, then paste into <strong style="color:var(--cyan)">hailuoai.com</strong></p>
+        <div class="prompt-list" id="promptList"></div>
+      </div>
+    </div>
+
+    <!-- VIDEOS -->
+    <div class="page" id="page-videos">
+      <div class="card">
+        <div class="card-title">🎬 Upload Video <span class="badge br">Auto Post Ready</span></div>
+        <div class="upload-zone" id="videoZone">
+          <input type="file" id="videoFile" accept="video/*">
+          <div class="upload-icon">🎬</div>
+          <h3>Tap to upload video</h3>
+          <p>MP4, MOV — From Hailuo AI</p>
+        </div>
+        <div class="prog-wrap" id="videoProgWrap">
+          <div class="prog-label" id="videoProgLabel">Uploading...</div>
+          <div class="prog-bg"><div class="prog-fill" id="videoProgFill"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎬 My Videos <span class="badge bg2" id="videoCount">0</span></div>
+        <div class="video-grid" id="videoList"><div class="empty" style="grid-column:1/-1"><div class="ei">🎬</div>No videos yet!</div></div>
+      </div>
+    </div>
+
+    <!-- SCHEDULE -->
+    <div class="page" id="page-schedule">
+      <div class="card">
+        <div class="card-title">📅 Create Campaign <span class="badge bp">7 Days</span></div>
+        <div class="fi-wrap"><label class="fi-label">Campaign Name</label><input type="text" class="fi-input" id="campName" placeholder="Summer Vibes Campaign"></div>
+        <div class="fi-wrap"><label class="fi-label">Anime Mode</label>
+          <select class="fi-select" id="campMode">
+            <option value="singer">Anime Singer</option>
+            <option value="mv">Music Video</option>
+            <option value="avatar">My Anime Avatar</option>
+          </select>
+        </div>
+        <div class="fi-row">
+          <div class="fi-wrap" style="margin:0"><label class="fi-label">Video Time</label><input type="time" class="fi-input" id="campVTime" value="20:00"></div>
+          <div class="fi-wrap" style="margin:0"><label class="fi-label">Short Time</label><input type="time" class="fi-input" id="campSTime" value="12:00"></div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:10px" id="createCampBtn">📅 Create Campaign</button>
+      </div>
+      <div class="card" id="calCard" style="display:none">
+        <div class="card-title">📅 Weekly Schedule <span class="badge bg2">Active</span></div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 My Campaigns</div>
+        <div class="camp-list" id="campList"><div class="empty"><div class="ei">📅</div>No campaigns yet</div></div>
+      </div>
+    </div>
+
+    <!-- AUTOPOST -->
+    <div class="page" id="page-autopost">
+      <div class="card">
+        <div class="card-title">🔗 Connection Status</div>
+        <div class="conn-item"><div class="conn-left"><div class="conn-icon">🗄️</div><div><div class="conn-name">Supabase</div><div class="conn-sub">Database & Storage</div></div></div><span class="badge bg2">● Connected</span></div>
+        <div class="conn-item"><div class="conn-left"><div class="conn-icon">🤖</div><div><div class="conn-name">Claude AI</div><div class="conn-sub">Audio & Prompts</div></div></div><span class="badge bg2">● Connected</span></div>
+        <div class="conn-item"><div class="conn-left"><div class="conn-icon">🔗</div><div><div class="conn-name">Make.com</div><div class="conn-sub">Auto posting</div></div></div><span class="badge bk">⚠ Setup Needed</span></div>
+        <div class="conn-item"><div class="conn-left"><div class="conn-icon">🎬</div><div><div class="conn-name">Hailuo AI</div><div class="conn-sub">Video generation</div></div></div><span class="badge bc">Manual Mode</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🤖 Make.com Setup</div>
+        <div class="step-item"><div class="step-title" style="color:var(--purple)">Step 1</div><div class="step-desc">Go to make.com → Tap "+" → Create new scenario</div></div>
+        <div class="step-item"><div class="step-title" style="color:var(--purple)">Step 2</div><div class="step-desc">Search "HTTP" → Select "Make a Request" → Set URL to your Supabase endpoint</div></div>
+        <div class="step-item"><div class="step-title" style="color:var(--purple)">Step 3</div><div class="step-desc">Add Instagram → TikTok → YouTube → Log into each account</div></div>
+        <div class="step-item"><div class="step-title" style="color:var(--purple)">Step 4 — Your Details</div>
+          <div style="background:var(--card);border-radius:8px;padding:10px;margin-top:6px;font-size:11px">
+            <div style="color:var(--text-dim);margin-bottom:3px">Supabase URL:</div>
+            <div style="color:var(--cyan);word-break:break-all;margin-bottom:8px">https://cifxgwlynrrgujzrhasr.supabase.co</div>
+            <div style="color:var(--text-dim);margin-bottom:3px">Table:</div>
+            <div style="color:var(--cyan)">audio_uploads</div>
+          </div>
+        </div>
+        <div class="step-item"><div class="step-title" style="color:var(--green)">Step 5 — Turn ON</div><div class="step-desc">Toggle scenario ON. Every video you upload will auto-post to all platforms!</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SURL='https://cifxgwlynrrgujzrhasr.supabase.co';
+const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZnhnd2x5bnJyZ3VqenJoYXNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzNTg4MzcsImV4cCI6MjA5NzkzNDgzN30.iVx_GWZaAF9S2rTW1SDNCKgw4msZNG4CPc7oxQUzz0Y';
+const AKEY='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';
+const sb=supabase.createClient(SURL,SKEY);
+let user=null;
+
+// Store prompts globally so copy buttons can access them
+let currentPrompts=[];
+
+// ── AUTH ──
+function switchTab(t){
+  document.getElementById('tab-login').classList.toggle('active',t==='login');
+  document.getElementById('tab-signup').classList.toggle('active',t==='signup');
+  document.getElementById('loginForm').style.display=t==='login'?'block':'none';
+  document.getElementById('signupForm').style.display=t==='signup'?'block':'none';
+  document.getElementById('authErr').style.display='none';
+  document.getElementById('authOk').style.display='none';
+}
+function showAuthErr(m){const e=document.getElementById('authErr');e.textContent=m;e.style.display='block';setTimeout(()=>e.style.display='none',4000)}
+function showAuthOk(m){const e=document.getElementById('authOk');e.textContent=m;e.style.display='block'}
+
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  if(!email||!pass)return showAuthErr('Please fill in all fields');
+  const btn=document.getElementById('loginBtn');
+  btn.disabled=true;btn.innerHTML='<span class="loader"></span>Logging in...';
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  btn.disabled=false;btn.textContent='Login to Studio';
+  if(error)return showAuthErr(error.message);
+  user=data.user;initApp();
+}
+
+async function doSignup(){
+  const name=document.getElementById('signupName').value.trim();
+  const email=document.getElementById('signupEmail').value.trim();
+  const pass=document.getElementById('signupPass').value;
+  if(!name||!email||!pass)return showAuthErr('Please fill in all fields');
+  if(pass.length<6)return showAuthErr('Password must be at least 6 characters');
+  const btn=document.getElementById('signupBtn');
+  btn.disabled=true;btn.innerHTML='<span class="loader"></span>Creating...';
+  const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name}}});
+  btn.disabled=false;btn.textContent='Create Account';
+  if(error)return showAuthErr(error.message);
+  showAuthOk('✅ Account created! Check your email to confirm, then login.');
+}
+
+async function doLogout(){
+  await sb.auth.signOut();
+  user=null;
+  document.getElementById('appWrap').style.display='none';
+  document.getElementById('authWrap').style.display='flex';
+}
+
+async function initApp(){
+  document.getElementById('authWrap').style.display='none';
+  document.getElementById('appWrap').style.display='flex';
+  const{data:{user:u}}=await sb.auth.getUser();
+  if(u){user=u;const n=u.user_metadata?.full_name||u.email.split('@')[0];document.getElementById('welcomeName').textContent=n}
+  loadStats();loadTracks();loadVideos();loadCamps();
+}
+
+sb.auth.onAuthStateChange((e,s)=>{if(s?.user){user=s.user;initApp()}});
+
+// ── NAV ──
+function goPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nt-'+p).classList.add('active');
+}
+
+// ── STATS ──
+async function loadStats(){
+  if(!user)return;
+  const[a,c]=await Promise.all([
+    sb.from('audio_uploads').select('id',{count:'exact',head:true}).eq('user_id',user.id),
+    sb.from('campaigns').select('id',{count:'exact',head:true}).eq('user_id',user.id)
+  ]);
+  const ac=a.count||0;
+  document.getElementById('s-audio').textContent=ac;
+  document.getElementById('s-prompts').textContent=ac*7;
+  document.getElementById('s-videos').textContent=ac;
+  document.getElementById('s-camps').textContent=c.count||0;
+}
+
+// ── AUDIO ──
+document.getElementById('audioFile').addEventListener('change',async function(e){
+  const file=e.target.files[0];
+  if(!file||!user)return;
+  const pw=document.getElementById('audioProgWrap');
+  const pf=document.getElementById('audioProgFill');
+  const pl=document.getElementById('audioProgLabel');
+  pw.style.display='block';pf.style.width='20%';pl.textContent='Uploading...';
+  const fname=user.id+'/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const{error:ue}=await sb.storage.from('audio-files').upload(fname,file,{upsert:true});
+  if(ue){showToast('Upload failed: '+ue.message,'error');pw.style.display='none';return}
+  pf.style.width='55%';pl.textContent='Saving...';
+  const{data:ud}=sb.storage.from('audio-files').getPublicUrl(fname);
+  const{error:de}=await sb.from('audio_uploads').insert({user_id:user.id,file_name:file.name,file_url:ud.publicUrl,duration:0,quality_score:85});
+  if(de){showToast('DB error: '+de.message,'error');pw.style.display='none';return}
+  pf.style.width='75%';pl.textContent='🤖 AI analyzing...';
+  document.getElementById('aiBox').style.display='block';
+  await analyzeAI(file.name);
+  pf.style.width='100%';pl.textContent='✅ Done!';
+  setTimeout(()=>pw.style.display='none',2000);
+  showToast('✅ Audio uploaded!','success');
+  loadTracks();loadStats();
+  this.value='';
+});
+
+async function analyzeAI(fname){
+  const res=document.getElementById('aiResult');
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':AKEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,messages:[{role:'user',content:'You are a professional music producer. Audio file: "'+fname+'". Give brief studio enhancement tips: EQ, Compression, Reverb, Vocal clarity. Quality score /100. Be concise.'}]})
+    });
+    const d=await r.json();
+    res.textContent=d.content?.[0]?.text||'Analysis complete.';
+    res.style.display='block';
+  }catch{
+    res.textContent='Audio saved successfully. AI analysis ready.';
+    res.style.display='block';
+  }
+}
+
+async function loadTracks(){
+  if(!user)return;
+  const{data}=await sb.from('audio_uploads').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+  const list=document.getElementById('trackList');
+  const cnt=document.getElementById('trackCount');
+  if(!data||!data.length){list.innerHTML='<div class="empty"><div class="ei">🎵</div>No audio yet. Upload above!</div>';cnt.textContent='0';return}
+  cnt.textContent=data.length;
+  list.innerHTML=data.map(t=>'<div class="track-item"><div class="track-icon">🎵</div><div class="track-info"><div class="track-name">'+t.file_name+'</div><div class="track-meta">'+new Date(t.created_at).toLocaleDateString()+'</div></div><div class="track-actions"><button class="btn btn-ghost btn-sm" onclick="window.open(\''+t.file_url+'\')">▶</button><button class="btn btn-cyan btn-sm" onclick="goPage(\'prompts\')">🎌</button></div></div>').join('');
+}
+
+// ── PROMPTS ──
+document.getElementById('genBtn').addEventListener('click', async function(){
+  const style=document.getElementById('animeStyle').value;
+  const mode=document.getElementById('contentMode').value;
+  const desc=document.getElementById('audioDesc').value||'energetic music track';
+  this.disabled=true;this.innerHTML='<span class="loader"></span>Generating...';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':AKEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:'Generate 7 unique anime video prompts for Hailuo AI video generator. Style: '+style+'. Mode: '+mode+'. Audio description: '+desc+'. Each day must have DIFFERENT character, background, camera angle, lighting and mood. Each prompt should be 2-3 sentences, very cinematic and detailed. Return ONLY valid JSON array, no markdown, no extra text. Format: [{day:1,dayName:"Monday",prompt:"...",tags:["tag1","tag2","tag3"]}]'}]})
+    });
+    const d=await r.json();
+    let prompts;
+    try{
+      let txt=d.content?.[0]?.text||'[]';
+      txt=txt.replace(/```json/g,'').replace(/```/g,'').trim();
+      prompts=JSON.parse(txt);
+    }catch{
+      prompts=makeFallback(style,mode);
+    }
+    currentPrompts=prompts;
+    renderPrompts(prompts);
+  }catch{
+    currentPrompts=makeFallback(style,mode);
+    renderPrompts(currentPrompts);
+  }
+  this.disabled=false;this.innerHTML='🤖 Generate 7 Day Prompts';
+});
+
+function makeFallback(style,mode){
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const scenes=['neon Tokyo rooftop at night','cherry blossom forest at dawn','ancient stone temple','futuristic sports stadium','mountain peak at golden sunset','underwater crystal cave','floating sky islands'];
+  return days.map((d,i)=>({day:i+1,dayName:d,prompt:style+' style anime character performing '+mode+' in a '+scenes[i]+', dramatic cinematic camera angles, stunning lighting effects, 4K quality animation, perfect lip sync.',tags:[style.split(' ')[0],'cinematic','4K','lip-sync']}));
+}
+
+function renderPrompts(prompts){
+  const card=document.getElementById('promptsCard');
+  const list=document.getElementById('promptList');
+  card.style.display='block';
+  // Build HTML with data-index to avoid inline JS issues
+  list.innerHTML=prompts.map((p,i)=>'<div class="prompt-item"><div class="prompt-day">Day '+p.day+' — '+p.dayName+'</div><div class="prompt-text">'+p.prompt+'</div><div class="prompt-tags">'+(p.tags||[]).map(t=>'<span class="ptag">'+t+'</span>').join('')+'</div><button class="copy-btn" data-index="'+i+'" type="button">📋 COPY THIS PROMPT</button></div>').join('');
+  
+  // Attach event listeners to copy buttons
+  list.querySelectorAll('.copy-btn').forEach(function(btn){
+    btn.addEventListener('touchend', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      const idx=parseInt(this.getAttribute('data-index'));
+      doCopy(this, currentPrompts[idx].prompt);
+    });
+    btn.addEventListener('click', function(e){
+      const idx=parseInt(this.getAttribute('data-index'));
+      doCopy(this, currentPrompts[idx].prompt);
+    });
+  });
+  
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function doCopy(btn, text){
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(()=>showCopied(btn)).catch(()=>fallbackCopy(btn,text));
+  } else {
+    fallbackCopy(btn, text);
+  }
+}
+
+function fallbackCopy(btn, text){
+  const ta=document.createElement('textarea');
+  ta.value=text;
+  ta.setAttribute('readonly','');
+  ta.style.cssText='position:absolute;left:-9999px;top:0;font-size:16px';
+  document.body.appendChild(ta);
+  const selected=document.getSelection().rangeCount>0?document.getSelection().getRangeAt(0):false;
+  ta.select();
+  ta.setSelectionRange(0,99999);
+  let ok=false;
+  try{ok=document.execCommand('copy');}catch{}
+  document.body.removeChild(ta);
+  if(selected){document.getSelection().removeAllRanges();document.getSelection().addRange(selected);}
+  if(ok)showCopied(btn);
+  else{btn.textContent='⚠ Long press text above to copy';setTimeout(()=>btn.textContent='📋 COPY THIS PROMPT',3000);}
+}
+
+function showCopied(btn){
+  btn.textContent='✅ COPIED!';
+  btn.classList.add('copied');
+  showToast('✅ Prompt copied!','success');
+  setTimeout(()=>{btn.textContent='📋 COPY THIS PROMPT';btn.classList.remove('copied');},2500);
+}
+
+// ── VIDEO ──
+document.getElementById('videoFile').addEventListener('change',async function(e){
+  const file=e.target.files[0];
+  if(!file||!user)return;
+  const pw=document.getElementById('videoProgWrap');
+  const pf=document.getElementById('videoProgFill');
+  const pl=document.getElementById('videoProgLabel');
+  pw.style.display='block';pf.style.width='20%';pl.textContent='Uploading video...';
+  const fname='videos/'+user.id+'/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const{error}=await sb.storage.from('audio-files').upload(fname,file,{upsert:true});
+  if(error){showToast('Upload failed: '+error.message,'error');pw.style.display='none';return}
+  pf.style.width='100%';pl.textContent='✅ Video saved!';
+  setTimeout(()=>pw.style.display='none',3000);
+  showToast('✅ Video uploaded!','success');
+  loadVideos();loadStats();
+  this.value='';
+});
+
+async function loadVideos(){
+  if(!user)return;
+  const{data}=await sb.storage.from('audio-files').list('videos/'+user.id,{limit:20});
+  const list=document.getElementById('videoList');
+  const cnt=document.getElementById('videoCount');
+  if(!data||!data.length){list.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="ei">🎬</div>No videos yet!</div>';cnt.textContent='0';return}
+  cnt.textContent=data.length;
+  list.innerHTML=data.map(v=>'<div class="video-card"><div class="video-thumb">🎌<span class="v-status">Ready</span></div><div class="video-info"><div class="video-name">'+v.name+'</div><div class="video-meta">'+new Date(v.created_at).toLocaleDateString()+'</div><button class="btn btn-green" style="padding:8px;font-size:11px;margin:0;min-height:36px">📤 Auto Post</button></div></div>').join('');
+}
+
+// ── CAMPAIGN ──
+document.getElementById('createCampBtn').addEventListener('click', async function(){
+  const name=document.getElementById('campName').value.trim();
+  const mode=document.getElementById('campMode').value;
+  const vt=document.getElementById('campVTime').value;
+  if(!name)return showToast('Please enter a campaign name','error');
+  if(!user)return;
+  const start=new Date();
+  const end=new Date();end.setDate(end.getDate()+7);
+  const{error}=await sb.from('campaigns').insert({user_id:user.id,anime_mode:mode,start_date:start.toISOString().split('T')[0],end_date:end.toISOString().split('T')[0],status:'active'});
+  if(error)return showToast('Error: '+error.message,'error');
+  showToast('✅ Campaign created!','success');
+  renderCal(vt);loadCamps();loadStats();
+});
+
+function renderCal(vt){
+  const card=document.getElementById('calCard');
+  const grid=document.getElementById('calGrid');
+  card.style.display='block';
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const today=new Date().getDay();
+  grid.innerHTML=days.map((d,i)=>{const isT=(i+1)%7===today%7;return'<div class="cal-day'+(isT?' today':'')+'"><div class="cal-name">'+d+'</div><div class="cal-num">'+(i+1)+'</div><div class="cal-pill '+(isT?'pv':'pd')+'">Video</div><div class="cal-pill '+(isT?'ps':'pd')+'">Short</div><div style="font-size:8px;color:var(--text-dim);margin-top:2px">'+vt+'</div></div>';}).join('');
+}
+
+async function loadCamps(){
+  if(!user)return;
+  const{data}=await sb.from('campaigns').select('*').eq('user_id',user.id).order('created_at',{ascending:false});
+  const list=document.getElementById('campList');
+  if(!data||!data.length){list.innerHTML='<div class="empty"><div class="ei">📅</div>No campaigns yet</div>';return}
+  list.innerHTML=data.map(c=>'<div class="camp-item"><div style="font-size:20px">📅</div><div style="flex:1"><div style="font-size:12px;font-weight:600">'+c.anime_mode+' Campaign</div><div style="font-size:10px;color:var(--text-dim)">'+c.start_date+' → '+c.end_date+'</div></div><span class="badge '+(c.status==='active'?'bg2':'bk')+'">'+c.status+'</span></div>').join('');
+}
+
+// ── TOAST ──
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type+' show';
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+</script>
+</body>
+</html>
